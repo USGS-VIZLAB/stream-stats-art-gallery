@@ -398,7 +398,6 @@ function fetchData() { // no arguments because as part of the function, we'll se
 function drawStreamgraph() { // again, no arguments because we've pushed the data to a globally scoped variable, "flow"
 
     d3.select("#streamgraph").style("display","block"); // first make the block for the streamgraph appear in the DOM
-    console.log("inside!")
     /////////////////////////////////
     // Here's the general structure of what we're about to do
     //
@@ -575,7 +574,7 @@ function update() {
     
     var newEnd = addDays(dates[0].end, 1);
     dates[0].end = newEnd;
-    console.log(gageSiteNos,"gage sites")
+    console.log(gageSiteNos[0],"gage sites")
     
 
     // calculate new flow data to push
