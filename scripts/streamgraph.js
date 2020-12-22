@@ -18,7 +18,7 @@ var colorScheme = ["#4f0b56","#482a70","#41498a","#3287bd","#4da4b1","#67c2a5","
 var gageSiteNos = [];
 
 // I'm also going to declare a few timing variables for the animation
-var frequency = 2 * 1000;  // 1 second
+var frequency = 1 * 1000;  // 1 second
 var dataMax = 31; // 31 days in the array
 var flow =[]; // empty array, but makes this variable globally accessible once we push values to it.
 var rawAPIdata = []; // empty array, but makes this variable globally accessible once we push values to it.
@@ -74,6 +74,56 @@ function addDays (date, daysToAdd) {
     return new Date(date.getTime() + daysToAdd * _24HoursInMilliseconds); // new Date() is Javascript's date object!
 };
 
+// Make a function that converts a date obejct YYYY-MM-DD format because that's what NWIS needs for the API call
+function getYYYYMMDD(d0){
+    var d = new Date(d0)
+    return new Date(d.getTime() - d.getTimezoneOffset() * 60 * 1000).toISOString().split('T')[0]
+}
+
+// Create a reusable function to collect all timeseries values and put them in their respective HUC array
+function getHUCArray(hucArray, huc_no, timeseries) {
+    timeseries.forEach(function(gage) {  // Another forEach loop, since timeseries is still an array
+        //console.log("8ish.This gage is", gage);
+        var this_huc = gage.huc02; // see what HUC 2 we're dealing with for each gage in the loop
+        //console.log("8ish. This gage's HUC2 is", this_huc);
+        var this_timeseries = gage.values[0].value; // grab the timeseries too
+        //console.log("8ish. This gage's timeseries is", this_timeseries);
+        var this_data = this_timeseries.map(function(v) {  // We use the map method to pull out 
+            //console.log("8ish. 'v' is each of the 31 measurements in this timeseries that we're dealing with in this iteration of the loop. 'v' is an object.",v);
+            if(this_huc == huc_no) { // if the HUC code matches the one I provded in the beginning, then it's good!
+                v.dateTime = v.dateTime.substring(0,10) // This takes the date of each measurement and just shortens it to a more readable format as YYYY-DD-MM without the time, which is meaningless
+                hucArray.push(v); // This takes each gage's timeseries (an object) and push it as another item in the array we've selected based on the HUC 2 code.
+            }                      
+        }); 
+    });
+};
+
+// Make a reusable function that aggregates flow at the huc2 level
+function getTotalFlow(hucArray, hucIDstring, allDates, birthdayFlow) {
+    if (hucArray.length >= 1) { // This starts the loop only if there are objects in the array to sum.  If there were no measurements in this HUC 2, then it doesn't break, it just will keep the discharge measurement for that day and HUC in birthdayFlow array as 0.
+        for (var i = 0; i <= allDates.length-1; i++) {
+            // in the first step, allDates[0] is YYYY-MM-DD of start date
+            
+            var todaysMeasurements = hucArray.filter(function(measurement) { // doing only HUC01 array
+                return measurement.dateTime === allDates[i];
+            })
+            var flows = todaysMeasurements.map(function(flows) {
+                return +flows.value;                        
+            })
+            
+            var totalFlow = Math.floor(flows.reduce(function(accumulator,flow) {
+                return accumulator + flow;
+            }))
+            
+            // console.log(birthdayFlow[i][property], "this")
+            birthdayFlow[i][hucIDstring] = totalFlow; // This assigns the aggregated flow to the particular day in the array (birthdayFlow[i]) which has a property with the same name as the hucArray.  There's probably a more elegant way to do this, but this [hucIDstring] bracket notation needs a string so whatever!
+        }
+    }
+};  
+
+
+
+
 /////////////////////////////////
 // Fetch and Use data
 //////////////////////////////////
@@ -111,11 +161,7 @@ function fetchData() { // no arguments because as part of the function, we'll se
     start = addDays(birthday, - 15);
     end = addDays(birthday, 15);       
 
-    // Make a function that converts a date obejct YYYY-MM-DD format because that's what NWIS needs for the API call
-    function getYYYYMMDD(d0){
-        var d = new Date(d0)
-        return new Date(d.getTime() - d.getTimezoneOffset() * 60 * 1000).toISOString().split('T')[0]
-    }
+    
     // Now apply that function to the start and end dates
     startDate = getYYYYMMDD(start);
     endDate = getYYYYMMDD(end);
@@ -232,6 +278,7 @@ function fetchData() { // no arguments because as part of the function, we'll se
             // Notice the extremely nested nature of this dataset. Objects and Arrays all the way down. 
             // I'll push this data to a globally accesible variable so we can play with the raw data elsewhere on the page.
             rawAPIdata.push(apiData);
+            console.log(apiData,"api")
 
             // let's just grab the timeseries out of the data, rather than all the extra metadata
             //timeseries = apiData; // EXERCISE : let's go get just the timeseries. Use the console to explore the data structure and fill out this line. Answer is below. 
@@ -281,96 +328,54 @@ function fetchData() { // no arguments because as part of the function, we'll se
             var huc19 = [];
             var huc20 = [];
             var huc21 = [];
-           
-            // Create a reusable function to collect all timeseries values and put them in their respective HUC array
-            function getHUCArray(hucArray, huc_no) {
-                timeseries.forEach(function(gage) {  // Another forEach loop, since timeseries is still an array
-                    //console.log("8ish.This gage is", gage);
-                    var this_huc = gage.huc02; // see what HUC 2 we're dealing with for each gage in the loop
-                    //console.log("8ish. This gage's HUC2 is", this_huc);
-                    var this_timeseries = gage.values[0].value; // grab the timeseries too
-                    //console.log("8ish. This gage's timeseries is", this_timeseries);
-                    var this_data = this_timeseries.map(function(v) {  // We use the map method to pull out 
-                        //console.log("8ish. 'v' is each of the 31 measurements in this timeseries that we're dealing with in this iteration of the loop. 'v' is an object.",v);
-                        if(this_huc == huc_no) { // if the HUC code matches the one I provded in the beginning, then it's good!
-                            v.dateTime = v.dateTime.substring(0,10) // This takes the date of each measurement and just shortens it to a more readable format as YYYY-DD-MM without the time, which is meaningless
-                            hucArray.push(v); // This takes each gage's timeseries (an object) and push it as another item in the array we've selected based on the HUC 2 code.
-                        }                      
-                    }); 
-                });
-            };
 
             // Get huc arrays for all hucs
-            getHUCArray(huc01,01);
-            getHUCArray(huc02,02);
-            getHUCArray(huc03,03);
-            getHUCArray(huc04,04);
-            getHUCArray(huc05,05);
-            getHUCArray(huc06,06);
-            getHUCArray(huc07,07);
-            getHUCArray(huc08,08);
-            getHUCArray(huc09,09);
-            getHUCArray(huc10,10);
-            getHUCArray(huc11,11);
-            getHUCArray(huc12,12);
-            getHUCArray(huc13,13);
-            getHUCArray(huc14,14);
-            getHUCArray(huc15,15);
-            getHUCArray(huc16,16);
-            getHUCArray(huc17,17);
-            getHUCArray(huc18,18);
-            getHUCArray(huc19,19);
-            getHUCArray(huc20,20);
-            getHUCArray(huc21,21);
+            getHUCArray(huc01,01, timeseries);
+            getHUCArray(huc02,02, timeseries);
+            getHUCArray(huc03,03, timeseries);
+            getHUCArray(huc04,04, timeseries);
+            getHUCArray(huc05,05, timeseries);
+            getHUCArray(huc06,06, timeseries);
+            getHUCArray(huc07,07, timeseries);
+            getHUCArray(huc08,08, timeseries);
+            getHUCArray(huc09,09, timeseries);
+            getHUCArray(huc10,10, timeseries);
+            getHUCArray(huc11,11, timeseries);
+            getHUCArray(huc12,12, timeseries);
+            getHUCArray(huc13,13, timeseries);
+            getHUCArray(huc14,14, timeseries);
+            getHUCArray(huc15,15, timeseries);
+            getHUCArray(huc16,16, timeseries);
+            getHUCArray(huc17,17, timeseries);
+            getHUCArray(huc18,18, timeseries);
+            getHUCArray(huc19,19, timeseries);
+            getHUCArray(huc20,20, timeseries);
+            getHUCArray(huc21,21, timeseries);
 
             /////////////////////////////////
             // 9. More data wrangling - aggregate all the measurements so we get a single timeseries for the HUC
             //////////////////////////////////
-
-            // Now we're going to sum everything and push those values into that empty birthdayFlow array of objects we made. 
-
-            function getTotalFlow(hucArray, hucIDstring) {
-                if (hucArray.length >= 1) { // This starts the loop only if there are objects in the array to sum.  If there were no measurements in this HUC 2, then it doesn't break, it just will keep the discharge measurement for that day and HUC in birthdayFlow array as 0.
-                    for (var i = 0; i <= allDates.length-1; i++) {
-                        // in the first step, allDates[0] is YYYY-MM-DD of start date
-                        
-                        var todaysMeasurements = hucArray.filter(function(measurement) { // doing only HUC01 array
-                            return measurement.dateTime === allDates[i];
-                        })
-                        var flows = todaysMeasurements.map(function(flows) {
-                            return +flows.value;                        
-                        })
-                        
-                        var totalFlow = Math.floor(flows.reduce(function(accumulator,flow) {
-                            return accumulator + flow;
-                        }))
-                        
-                        // console.log(birthdayFlow[i][property], "this")
-                        birthdayFlow[i][hucIDstring] = totalFlow; // This assigns the aggregated flow to the particular day in the array (birthdayFlow[i]) which has a property with the same name as the hucArray.  There's probably a more elegant way to do this, but this [hucIDstring] bracket notation needs a string so whatever!
-                    }
-                }
-            };           
-            getTotalFlow(huc01, "huc01"); 
-            getTotalFlow(huc02, "huc02");  
-            getTotalFlow(huc03,"huc03");
-            getTotalFlow(huc04,"huc04");
-            getTotalFlow(huc05,"huc05");
-            getTotalFlow(huc06,"huc06");
-            getTotalFlow(huc07,"huc07");
-            getTotalFlow(huc08,"huc08");
-            getTotalFlow(huc09,"huc09");
-            getTotalFlow(huc10,"huc10");
-            getTotalFlow(huc11,"huc11");
-            getTotalFlow(huc12,"huc12");
-            getTotalFlow(huc13,"huc13");
-            getTotalFlow(huc14,"huc14");
-            getTotalFlow(huc15,"huc15");
-            getTotalFlow(huc16,"huc16");
-            getTotalFlow(huc17,"huc17");
-            getTotalFlow(huc18,"huc18");
-            getTotalFlow(huc19,"huc19");
-            getTotalFlow(huc20,"huc20");
-            getTotalFlow(huc21,"huc21");
+            getTotalFlow(huc01,"huc01", allDates, birthdayFlow);
+            getTotalFlow(huc02,"huc02", allDates, birthdayFlow);
+            getTotalFlow(huc03,"huc03", allDates, birthdayFlow);
+            getTotalFlow(huc04,"huc04", allDates, birthdayFlow);
+            getTotalFlow(huc05,"huc05", allDates, birthdayFlow);
+            getTotalFlow(huc06,"huc06", allDates, birthdayFlow);
+            getTotalFlow(huc07,"huc07", allDates, birthdayFlow);
+            getTotalFlow(huc08,"huc08", allDates, birthdayFlow);
+            getTotalFlow(huc09,"huc09", allDates, birthdayFlow);
+            getTotalFlow(huc10,"huc10", allDates, birthdayFlow);
+            getTotalFlow(huc11,"huc11", allDates, birthdayFlow);
+            getTotalFlow(huc12,"huc12", allDates, birthdayFlow);
+            getTotalFlow(huc13,"huc13", allDates, birthdayFlow);
+            getTotalFlow(huc14,"huc14", allDates, birthdayFlow);
+            getTotalFlow(huc15,"huc15", allDates, birthdayFlow);
+            getTotalFlow(huc16,"huc16", allDates, birthdayFlow);
+            getTotalFlow(huc17,"huc17", allDates, birthdayFlow);
+            getTotalFlow(huc18,"huc18", allDates, birthdayFlow);
+            getTotalFlow(huc19,"huc19", allDates, birthdayFlow);
+            getTotalFlow(huc20,"huc20", allDates, birthdayFlow);
+            getTotalFlow(huc21,"huc21", allDates, birthdayFlow);
 
             flow.pop()
             flow.push(birthdayFlow); // Finally, I'll push it outside of this fetchData function into a globally scoped variable so I can grab it with other functions
@@ -448,7 +453,7 @@ function drawStreamgraph() { // again, no arguments because we've pushed the dat
     // Add X axis
     var x = d3.scaleTime()
         .domain([dates[0].start, dates[0].end]) // set the beginning and end by accessing the values stored in the global 'dates' variable. It needs the javascript object format, not the YYYY-MM-DD format we made elsewhere
-        .range([0,width ]);
+        .range([0,width+200]); // give us 200px of wiggle room during the animation for us to push new data by the time the new junction arrives
     
     // append a "group" to the svg to contain the ticks, and then draw them
     svg.append("g")
@@ -560,25 +565,187 @@ function drawStreamgraph() { // again, no arguments because we've pushed the dat
             .select(".domain").remove()
 }
 
-function update() {
 
-    /////////////////////////////////
-    // Calculate new data
-    /////////////////////////////////
 
-    console.log("flow", flow, "dates", dates)
+function updateData() {
+      
+    // calculate new date range for the next api call
+    var lastDate = flow[0][30].dateFull; //this is the last date in the flow array
+    var newStart = addDays(lastDate,1);
+    var newEnd = addDays(lastDate,31);
 
-    // calculate the new date data
-    var newStart = addDays(dates[0].start, 1);
-    dates[0].start = newStart;
+    // compile new api
+    var urlSites = "&sites=" + gageSiteNos[0]; // this attaches the array of site numbers
+    var urlStartDate = "&startDT=" + getYYYYMMDD(newStart); // this attaches the start date in YYYY-MM-DD
+    var urlEndDate = "&endDT=" + getYYYYMMDD(newEnd); // this attaches the end date in YYYY-MM-DD
+    var urlStatCD = "&statCd=00003" // 00003 means "mean" values
+    var urlParam = "&PARAMETERcD=" + paramCode; // we declared above to only want discharge
+    var updateSitey = emptyAPI + urlSites + urlStartDate + urlEndDate + urlStatCD + urlParam;
+
+    // declare new arrays for the new data, which will get pushed to the original flow array
+    // While we're at it, let's make an array of all the dates we're going to pull data for!  We won't need it for the actual API call, but we will need this array for plotting a streamgraph
+    newDates = [
+        getYYYYMMDD(newStart), 
+        getYYYYMMDD(addDays(newStart,1)), 
+        getYYYYMMDD(addDays(newStart,2)), 
+        getYYYYMMDD(addDays(newStart,3)), 
+        getYYYYMMDD(addDays(newStart,4)), 
+        getYYYYMMDD(addDays(newStart,5)), 
+        getYYYYMMDD(addDays(newStart,6)), 
+        getYYYYMMDD(addDays(newStart,7)), 
+        getYYYYMMDD(addDays(newStart,8)), 
+        getYYYYMMDD(addDays(newStart,9)), 
+        getYYYYMMDD(addDays(newStart,10)), 
+        getYYYYMMDD(addDays(newStart,11)), 
+        getYYYYMMDD(addDays(newStart,12)), 
+        getYYYYMMDD(addDays(newStart,13)), 
+        getYYYYMMDD(addDays(newStart,14)), 
+        getYYYYMMDD(newStart,15), 
+        getYYYYMMDD(addDays(newEnd,-14)), 
+        getYYYYMMDD(addDays(newEnd,-13)), 
+        getYYYYMMDD(addDays(newEnd,-12)), 
+        getYYYYMMDD(addDays(newEnd,-11)), 
+        getYYYYMMDD(addDays(newEnd,-10)), 
+        getYYYYMMDD(addDays(newEnd,-9)), 
+        getYYYYMMDD(addDays(newEnd,-8)), 
+        getYYYYMMDD(addDays(newEnd,-7)), 
+        getYYYYMMDD(addDays(newEnd,-6)), 
+        getYYYYMMDD(addDays(newEnd,-5)), 
+        getYYYYMMDD(addDays(newEnd,-4)), 
+        getYYYYMMDD(addDays(newEnd,-3)), 
+        getYYYYMMDD(addDays(newEnd,-2)), 
+        getYYYYMMDD(addDays(newEnd,-1)), 
+        getYYYYMMDD(newEnd)
+    ];
+    newFlow = [
+        {dateFull:newStart, date:newDates[0], huc01:0,huc02:0,huc03:0,huc04:0,huc05:0,huc06:0,huc07:0,huc08:0,huc09:0,huc10:0,huc11:0,huc12:0,huc13:0,huc14:0,huc15:0,huc16:0,huc17:0,huc18:0,huc19:0,huc20:0,huc21:0},
+        {dateFull:addDays(newStart,1), date:newDates[1], huc01:0,huc02:0,huc03:0,huc04:0,huc05:0,huc06:0,huc07:0,huc08:0,huc09:0,huc10:0,huc11:0,huc12:0,huc13:0,huc14:0,huc15:0,huc16:0,huc17:0,huc18:0,huc19:0,huc20:0,huc21:0},
+        {dateFull:addDays(newStart,2), date:newDates[2], huc01:0,huc02:0,huc03:0,huc04:0,huc05:0,huc06:0,huc07:0,huc08:0,huc09:0,huc10:0,huc11:0,huc12:0,huc13:0,huc14:0,huc15:0,huc16:0,huc17:0,huc18:0,huc19:0,huc20:0,huc21:0},
+        {dateFull:addDays(newStart,3), date:newDates[3], huc01:0,huc02:0,huc03:0,huc04:0,huc05:0,huc06:0,huc07:0,huc08:0,huc09:0,huc10:0,huc11:0,huc12:0,huc13:0,huc14:0,huc15:0,huc16:0,huc17:0,huc18:0,huc19:0,huc20:0,huc21:0},
+        {dateFull:addDays(newStart,4), date:newDates[4], huc01:0,huc02:0,huc03:0,huc04:0,huc05:0,huc06:0,huc07:0,huc08:0,huc09:0,huc10:0,huc11:0,huc12:0,huc13:0,huc14:0,huc15:0,huc16:0,huc17:0,huc18:0,huc19:0,huc20:0,huc21:0},
+        {dateFull:addDays(newStart,5), date:newDates[5], huc01:0,huc02:0,huc03:0,huc04:0,huc05:0,huc06:0,huc07:0,huc08:0,huc09:0,huc10:0,huc11:0,huc12:0,huc13:0,huc14:0,huc15:0,huc16:0,huc17:0,huc18:0,huc19:0,huc20:0,huc21:0},
+        {dateFull:addDays(newStart,6), date:newDates[6], huc01:0,huc02:0,huc03:0,huc04:0,huc05:0,huc06:0,huc07:0,huc08:0,huc09:0,huc10:0,huc11:0,huc12:0,huc13:0,huc14:0,huc15:0,huc16:0,huc17:0,huc18:0,huc19:0,huc20:0,huc21:0},
+        {dateFull:addDays(newStart,7), date:newDates[7], huc01:0,huc02:0,huc03:0,huc04:0,huc05:0,huc06:0,huc07:0,huc08:0,huc09:0,huc10:0,huc11:0,huc12:0,huc13:0,huc14:0,huc15:0,huc16:0,huc17:0,huc18:0,huc19:0,huc20:0,huc21:0},
+        {dateFull:addDays(newStart,8), date:newDates[8], huc01:0,huc02:0,huc03:0,huc04:0,huc05:0,huc06:0,huc07:0,huc08:0,huc09:0,huc10:0,huc11:0,huc12:0,huc13:0,huc14:0,huc15:0,huc16:0,huc17:0,huc18:0,huc19:0,huc20:0,huc21:0},
+        {dateFull:addDays(newStart,9), date:newDates[9], huc01:0,huc02:0,huc03:0,huc04:0,huc05:0,huc06:0,huc07:0,huc08:0,huc09:0,huc10:0,huc11:0,huc12:0,huc13:0,huc14:0,huc15:0,huc16:0,huc17:0,huc18:0,huc19:0,huc20:0,huc21:0},
+        {dateFull:addDays(newStart,10), date:newDates[10], huc01:0,huc02:0,huc03:0,huc04:0,huc05:0,huc06:0,huc07:0,huc08:0,huc09:0,huc10:0,huc11:0,huc12:0,huc13:0,huc14:0,huc15:0,huc16:0,huc17:0,huc18:0,huc19:0,huc20:0,huc21:0},
+        {dateFull:addDays(newStart,11), date:newDates[11], huc01:0,huc02:0,huc03:0,huc04:0,huc05:0,huc06:0,huc07:0,huc08:0,huc09:0,huc10:0,huc11:0,huc12:0,huc13:0,huc14:0,huc15:0,huc16:0,huc17:0,huc18:0,huc19:0,huc20:0,huc21:0},
+        {dateFull:addDays(newStart,12), date:newDates[12], huc01:0,huc02:0,huc03:0,huc04:0,huc05:0,huc06:0,huc07:0,huc08:0,huc09:0,huc10:0,huc11:0,huc12:0,huc13:0,huc14:0,huc15:0,huc16:0,huc17:0,huc18:0,huc19:0,huc20:0,huc21:0},
+        {dateFull:addDays(newStart,13), date:newDates[13], huc01:0,huc02:0,huc03:0,huc04:0,huc05:0,huc06:0,huc07:0,huc08:0,huc09:0,huc10:0,huc11:0,huc12:0,huc13:0,huc14:0,huc15:0,huc16:0,huc17:0,huc18:0,huc19:0,huc20:0,huc21:0},
+        {dateFull:addDays(newStart,14), date:newDates[14], huc01:0,huc02:0,huc03:0,huc04:0,huc05:0,huc06:0,huc07:0,huc08:0,huc09:0,huc10:0,huc11:0,huc12:0,huc13:0,huc14:0,huc15:0,huc16:0,huc17:0,huc18:0,huc19:0,huc20:0,huc21:0},
+        {dateFull:addDays(newStart,15), date:newDates[15], huc01:0,huc02:0,huc03:0,huc04:0,huc05:0,huc06:0,huc07:0,huc08:0,huc09:0,huc10:0,huc11:0,huc12:0,huc13:0,huc14:0,huc15:0,huc16:0,huc17:0,huc18:0,huc19:0,huc20:0,huc21:0},
+        {dateFull:addDays(newEnd,-14), date:newDates[16], huc01:0,huc02:0,huc03:0,huc04:0,huc05:0,huc06:0,huc07:0,huc08:0,huc09:0,huc10:0,huc11:0,huc12:0,huc13:0,huc14:0,huc15:0,huc16:0,huc17:0,huc18:0,huc19:0,huc20:0,huc21:0},
+        {dateFull:addDays(newEnd,-13), date:newDates[17], huc01:0,huc02:0,huc03:0,huc04:0,huc05:0,huc06:0,huc07:0,huc08:0,huc09:0,huc10:0,huc11:0,huc12:0,huc13:0,huc14:0,huc15:0,huc16:0,huc17:0,huc18:0,huc19:0,huc20:0,huc21:0},
+        {dateFull:addDays(newEnd,-12), date:newDates[18], huc01:0,huc02:0,huc03:0,huc04:0,huc05:0,huc06:0,huc07:0,huc08:0,huc09:0,huc10:0,huc11:0,huc12:0,huc13:0,huc14:0,huc15:0,huc16:0,huc17:0,huc18:0,huc19:0,huc20:0,huc21:0},
+        {dateFull:addDays(newEnd,-11), date:newDates[19], huc01:0,huc02:0,huc03:0,huc04:0,huc05:0,huc06:0,huc07:0,huc08:0,huc09:0,huc10:0,huc11:0,huc12:0,huc13:0,huc14:0,huc15:0,huc16:0,huc17:0,huc18:0,huc19:0,huc20:0,huc21:0},
+        {dateFull:addDays(newEnd,-10), date:newDates[20], huc01:0,huc02:0,huc03:0,huc04:0,huc05:0,huc06:0,huc07:0,huc08:0,huc09:0,huc10:0,huc11:0,huc12:0,huc13:0,huc14:0,huc15:0,huc16:0,huc17:0,huc18:0,huc19:0,huc20:0,huc21:0},
+        {dateFull:addDays(newEnd,-9), date:newDates[21], huc01:0,huc02:0,huc03:0,huc04:0,huc05:0,huc06:0,huc07:0,huc08:0,huc09:0,huc10:0,huc11:0,huc12:0,huc13:0,huc14:0,huc15:0,huc16:0,huc17:0,huc18:0,huc19:0,huc20:0,huc21:0},
+        {dateFull:addDays(newEnd,-8), date:newDates[22], huc01:0,huc02:0,huc03:0,huc04:0,huc05:0,huc06:0,huc07:0,huc08:0,huc09:0,huc10:0,huc11:0,huc12:0,huc13:0,huc14:0,huc15:0,huc16:0,huc17:0,huc18:0,huc19:0,huc20:0,huc21:0},
+        {dateFull:addDays(newEnd,-7), date:newDates[23], huc01:0,huc02:0,huc03:0,huc04:0,huc05:0,huc06:0,huc07:0,huc08:0,huc09:0,huc10:0,huc11:0,huc12:0,huc13:0,huc14:0,huc15:0,huc16:0,huc17:0,huc18:0,huc19:0,huc20:0,huc21:0},
+        {dateFull:addDays(newEnd,-6), date:newDates[24], huc01:0,huc02:0,huc03:0,huc04:0,huc05:0,huc06:0,huc07:0,huc08:0,huc09:0,huc10:0,huc11:0,huc12:0,huc13:0,huc14:0,huc15:0,huc16:0,huc17:0,huc18:0,huc19:0,huc20:0,huc21:0},
+        {dateFull:addDays(newEnd,-5), date:newDates[25], huc01:0,huc02:0,huc03:0,huc04:0,huc05:0,huc06:0,huc07:0,huc08:0,huc09:0,huc10:0,huc11:0,huc12:0,huc13:0,huc14:0,huc15:0,huc16:0,huc17:0,huc18:0,huc19:0,huc20:0,huc21:0},
+        {dateFull:addDays(newEnd,-4), date:newDates[26], huc01:0,huc02:0,huc03:0,huc04:0,huc05:0,huc06:0,huc07:0,huc08:0,huc09:0,huc10:0,huc11:0,huc12:0,huc13:0,huc14:0,huc15:0,huc16:0,huc17:0,huc18:0,huc19:0,huc20:0,huc21:0},
+        {dateFull:addDays(newEnd,-3), date:newDates[27], huc01:0,huc02:0,huc03:0,huc04:0,huc05:0,huc06:0,huc07:0,huc08:0,huc09:0,huc10:0,huc11:0,huc12:0,huc13:0,huc14:0,huc15:0,huc16:0,huc17:0,huc18:0,huc19:0,huc20:0,huc21:0},
+        {dateFull:addDays(newEnd,-2), date:newDates[28], huc01:0,huc02:0,huc03:0,huc04:0,huc05:0,huc06:0,huc07:0,huc08:0,huc09:0,huc10:0,huc11:0,huc12:0,huc13:0,huc14:0,huc15:0,huc16:0,huc17:0,huc18:0,huc19:0,huc20:0,huc21:0},
+        {dateFull:addDays(newEnd,-1), date:newDates[29], huc01:0,huc02:0,huc03:0,huc04:0,huc05:0,huc06:0,huc07:0,huc08:0,huc09:0,huc10:0,huc11:0,huc12:0,huc13:0,huc14:0,huc15:0,huc16:0,huc17:0,huc18:0,huc19:0,huc20:0,huc21:0},
+        {dateFull:newEnd, date:newDates[30], huc01:0,huc02:0,huc03:0,huc04:0,huc05:0,huc06:0,huc07:0,huc08:0,huc09:0,huc10:0,huc11:0,huc12:0,huc13:0,huc14:0,huc15:0,huc16:0,huc17:0,huc18:0,huc19:0,huc20:0,huc21:0}
+    ];
     
-    var newEnd = addDays(dates[0].end, 1);
-    dates[0].end = newEnd;
-    console.log(gageSiteNos[0],"gage sites")
-    
+   
 
-    // calculate new flow data to push
-    
+    // call API for new day
+    d3.json(updateSitey, function(error, newAPIData) { 
+        timeseries = newAPIData.value.timeSeries;
+        
+
+        var badGages = []; // make empty array to populate with a list of gages with incomplete data
+        timeseries.forEach(function(gage, index) { // This translates to: "Take the array of objects called timeseries. Go item-by-item in the array.  Each item we'll call 'gage' and keep track of the index. "
+            var array = gage.values[0].value;  // Each item in the array (ie, 'gage') is actually nested data.  As we go item-by-item, pull out just the array of timeseries values and assign that array to the variable 'array'.  Ignore the rest of the metadata.
+            if(array.length !== 31 ) { // Check to see if there aren't exactly 31 measurements.  If not...
+                badGages.push(gage.name); // ... take the gage name of this particular gage, and push it into the array of "bad gages"...
+                timeseries.splice(index, 1); // ... then go back to the original timeseries and remove 1 item from that array, specifically the item with this index. They will always match!
+            }
+            gage.huc02 = gage.sourceInfo.siteProperty[1].value.slice(0,2); // And while we're here, go ahead and add a property that lists the HUC02 for each gage by slicing the first two numbers from the huc_cd
+        });
+
+        
+        // take empty huc arrays var huc01 = []; // These are empty arrays
+        var huc01 = [];
+        var huc02 = [];
+        var huc03 = [];
+        var huc04 = [];
+        var huc05 = [];
+        var huc06 = [];
+        var huc07 = [];
+        var huc08 = [];
+        var huc09 = [];
+        var huc10 = [];
+        var huc11 = [];
+        var huc12 = [];
+        var huc13 = [];
+        var huc14 = [];
+        var huc15 = [];
+        var huc16 = [];
+        var huc17 = [];
+        var huc18 = [];
+        var huc19 = [];
+        var huc20 = [];
+        var huc21 = [];
+
+        
+        // Get huc arrays for all hucs
+        getHUCArray(huc01,01, timeseries);
+        getHUCArray(huc02,02, timeseries);
+        getHUCArray(huc03,03, timeseries);
+        getHUCArray(huc04,04, timeseries);
+        getHUCArray(huc05,05, timeseries);
+        getHUCArray(huc06,06, timeseries);
+        getHUCArray(huc07,07, timeseries);
+        getHUCArray(huc08,08, timeseries);
+        getHUCArray(huc09,09, timeseries);
+        getHUCArray(huc10,10, timeseries);
+        getHUCArray(huc11,11, timeseries);
+        getHUCArray(huc12,12, timeseries);
+        getHUCArray(huc13,13, timeseries);
+        getHUCArray(huc14,14, timeseries);
+        getHUCArray(huc15,15, timeseries);
+        getHUCArray(huc16,16, timeseries);
+        getHUCArray(huc17,17, timeseries);
+        getHUCArray(huc18,18, timeseries);
+        getHUCArray(huc19,19, timeseries);
+        getHUCArray(huc20,20, timeseries);
+        getHUCArray(huc21,21, timeseries);
+
+        /////////////////////////////////
+        // 9. More data wrangling - aggregate all the measurements so we get a single timeseries for the HUC
+        //////////////////////////////////
+        getTotalFlow(huc01,"huc01", newDates, newFlow);
+        getTotalFlow(huc02,"huc02", newDates, newFlow);
+        getTotalFlow(huc03,"huc03", newDates, newFlow);
+        getTotalFlow(huc04,"huc04", newDates, newFlow);
+        getTotalFlow(huc05,"huc05", newDates, newFlow);
+        getTotalFlow(huc06,"huc06", newDates, newFlow);
+        getTotalFlow(huc07,"huc07", newDates, newFlow);
+        getTotalFlow(huc08,"huc08", newDates, newFlow);
+        getTotalFlow(huc09,"huc09", newDates, newFlow);
+        getTotalFlow(huc10,"huc10", newDates, newFlow);
+        getTotalFlow(huc11,"huc11", newDates, newFlow);
+        getTotalFlow(huc12,"huc12", newDates, newFlow);
+        getTotalFlow(huc13,"huc13", newDates, newFlow);
+        getTotalFlow(huc14,"huc14", newDates, newFlow);
+        getTotalFlow(huc15,"huc15", newDates, newFlow);
+        getTotalFlow(huc16,"huc16", newDates, newFlow);
+        getTotalFlow(huc17,"huc17", newDates, newFlow);
+        getTotalFlow(huc18,"huc18", newDates, newFlow);
+        getTotalFlow(huc19,"huc19", newDates, newFlow);
+        getTotalFlow(huc20,"huc20", newDates, newFlow);
+        getTotalFlow(huc21,"huc21", newDates, newFlow);
+
+        console.log(newFlow, "new flow!!")
+    // end update d3.json
+    });
+           
+        
 
     // Shift last data point (was .unshift in reversed example)
     // flow.shift();
@@ -586,10 +753,32 @@ function update() {
     // Push new value to the end (was .pop in the reversed example)
     // flow.push("new date")
 
-    
 
-    // Finally, once the new data is updated, redraw the streamgraph
+    // Set new dates
+
+
+}
+setInterval(updateData, frequency*3); // Update the data less frequently than it's drawn. specifically, 31 times as long (for 1 second per day)
+
+
+function updateDraw() {
+
+    /////////////////////////////////
+    // Calculate new data
+    /////////////////////////////////
+
+    console.log("flow", flow[0], "dates", dates[0])
+
+    // calculate the new dates, which sets the "view pane" of the available data drawn on the chart
+    var newStart = addDays(dates[0].start, 1);
+    dates[0].start = newStart;
+    
+    var newEnd = addDays(dates[0].end, 1);
+    dates[0].end = newEnd;
+    
+    // Finally, now that the domain of the dates are updated (since drawStreamgraph uses dates[0].start and .end to set the domain), redraw the streamgraph
     drawStreamgraph();
 };
 
-setInterval(update, frequency);
+setInterval(updateDraw, frequency);
+
