@@ -15,6 +15,11 @@ var paramCode = '00060'; // discharge in cubic feet per second
 var siteType = 'ST';
 var siteStatus = "all";
 var colorScheme = ["#4f0b56","#482a70","#41498a","#3287bd","#4da4b1","#67c2a5","#8acda4","#acd7a3","#c8e19e","#e4ea99","#f7eda9","#fcde89","#ffc28a","#e5ccf5", /*"#eeb4d1",*/"#f79cac","#ae3a7d","#890965","#760a60","#620a5b","#420f4e"];
+var gageSiteNos = [];
+
+// I'm also going to declare a few timing variables for the animation
+var frequency = 2 * 1000;  // 1 second
+var dataMax = 31; // 31 days in the array
 var flow =[]; // empty array, but makes this variable globally accessible once we push values to it.
 var rawAPIdata = []; // empty array, but makes this variable globally accessible once we push values to it.
 var dates = []; // an empty array of dates that we'll push info to
@@ -60,6 +65,16 @@ var svg = d3.select("#streamgraph")
     .attr("transform", "translate(0," + margin.top + ")");
 
 /////////////////////////////////
+// Reusable Functions we'll want to use in more than one function
+//////////////////////////////////
+
+// Function to get a new date a certain number of days from another date
+function addDays (date, daysToAdd) {
+    var _24HoursInMilliseconds = 86400000; // conversion count
+    return new Date(date.getTime() + daysToAdd * _24HoursInMilliseconds); // new Date() is Javascript's date object!
+};
+
+/////////////////////////////////
 // Fetch and Use data
 //////////////////////////////////
 
@@ -69,28 +84,8 @@ function fetchData() { // no arguments because as part of the function, we'll se
 
     
     /////////////////////////////////
-    // Here's the general structure of what we're about to do
-    //
-    // 1. Declare Static Variables
-    // 2. Get Date from document and convert it to what the code needs
-    // 3. Pre-make a data structure that will plug nicely into the streamgraph.
-    // 4. Read a CSV to get a list of gage sites
-    // 5. Compile all the chunks of the NWIS API url and call it
-    // 6. Call the API and get the actual discharge data!
-    // 7. Do some data wrangling - push out any bad data
-    // 8. More data wrangling - sort all the timeseries values into arrays grouped by HUC2.
-    // 9. More data wrangling - aggregate all the measurements so we get a single timeseries for the HUC
-    //
-    // Then the data wrangling is done! I'll put the streamgraph drawing in another function to keep things organized.
-    //
-    //////////////////////////////////
-
-
-    /////////////////////////////////
     // 1. Clear any variables we need (that might have data stored from a previous click)
-    //////////////////////////////////
-
-    
+    ///////////////////////////////// 
 
 
     // Declare a bunch of variables so they exist, but don't give them any values. This overwrites any pre-existing data that was there from the last time this function ran.
@@ -102,19 +97,11 @@ function fetchData() { // no arguments because as part of the function, we'll se
     var allDates = []; // will be an ARRAY of the dates, 
     var sitey = ""; // the final, filled-in API query
     var birthdayFlow = []; // will be an ARRAY, where each 
-    var info = [];
     var timeseries = [];
-    var allSites = [];
 
     /////////////////////////////////
     // 2. Get Date from document and convert it to what the code needs
-    //////////////////////////////////
-
-    // Function to get a new date a certain number of days from another date
-    function addDays (date, daysToAdd) {
-        var _24HoursInMilliseconds = 86400000; // conversion count
-        return new Date(date.getTime() + daysToAdd * _24HoursInMilliseconds); // new Date() is Javascript's date object!
-    };
+    //////////////////////////////////   
     
     // Grab the value input by the user and assign it to the variable "birthday", converting it to a date object in the process
     birthday = new Date(document.getElementById("birthdate").value); 
@@ -132,6 +119,7 @@ function fetchData() { // no arguments because as part of the function, we'll se
     // Now apply that function to the start and end dates
     startDate = getYYYYMMDD(start);
     endDate = getYYYYMMDD(end);
+
 
     /////////////////////////////////
     // 3. Pre-make a data structure that will plug nicely into the streamgraph.
@@ -171,7 +159,7 @@ function fetchData() { // no arguments because as part of the function, we'll se
         getYYYYMMDD(addDays(end,-1)), 
         getYYYYMMDD(end)
     ];
-    
+   
     // We've already declared birthdayFlow above, and made it an empty array. This populates it as an array of objects, with properties that we can now call on later
     // I am not smart enough to come up with this on my own!  I just looked at a streamgraph example in d3, console.logged the data that fed it, and it was in this structure.
     // So this is just reverse engineering data that we have to fit into an existing thing that works. Maybe not the most elegant way to do it. 
@@ -214,9 +202,10 @@ function fetchData() { // no arguments because as part of the function, we'll se
     // 4. Read a CSV to get a list of gage sites
     //////////////////////////////////
     d3.csv("data/ref_gages.csv", function(gages) { 
-       
+        
         // Get list of site numbers to add to the url.  We can use the .map() function!
         var gageSites = gages.map(function(g) { return g.site_no; });
+        gageSiteNos.push(gageSites);
         // This is exactly what we need for NWIS, which says it can pull data for multiple gages as long as you provide a list of sites...separated by a comma! Which is how an array is formatted!!!
     
         /////////////////////////////////
@@ -239,7 +228,7 @@ function fetchData() { // no arguments because as part of the function, we'll se
         // 6. Call the API and get the actual discharge data!
         //////////////////////////////////
         d3.json(sitey, function(error, apiData) { 
-            
+           
             // Notice the extremely nested nature of this dataset. Objects and Arrays all the way down. 
             // I'll push this data to a globally accesible variable so we can play with the raw data elsewhere on the page.
             rawAPIdata.push(apiData);
@@ -247,8 +236,7 @@ function fetchData() { // no arguments because as part of the function, we'll se
             // let's just grab the timeseries out of the data, rather than all the extra metadata
             //timeseries = apiData; // EXERCISE : let's go get just the timeseries. Use the console to explore the data structure and fill out this line. Answer is below. 
             timeseries = apiData.value.timeSeries;
-           
-
+            
             /////////////////////////////////
             // 7. Do some data wrangling - push out any bad data
             //////////////////////////////////
@@ -340,7 +328,6 @@ function fetchData() { // no arguments because as part of the function, we'll se
             //////////////////////////////////
 
             // Now we're going to sum everything and push those values into that empty birthdayFlow array of objects we made. 
-            
 
             function getTotalFlow(hucArray, hucIDstring) {
                 if (hucArray.length >= 1) { // This starts the loop only if there are objects in the array to sum.  If there were no measurements in this HUC 2, then it doesn't break, it just will keep the discharge measurement for that day and HUC in birthdayFlow array as 0.
@@ -394,170 +381,9 @@ function fetchData() { // no arguments because as part of the function, we'll se
             dates.pop()
             dates.push({'start': start, 'birthday': birthday,'end':end});
 
-            d3.select("#streamgraph").style("display","block"); // first make the block for the streamgraph appear in the DOM
+            // Do a tricky thing and make streamgraph drawing available only once the data are computed. You don't have to do this, I'm just having fun pacing you ;)
+            d3.selectAll(".hidden-until-data").style("display","block");
             
-            /////////////////////////////////
-            // Here's the general structure of what we're about to do
-            //
-            // 1. Add a property called 'columns' upon which the streamgraph data will be stacked
-            //
-            //////////////////////////////////
-
-            
-            /////////////////////////////////
-            // 1. Add a property called 'columns' upon which the streamgraph data will be stacked
-            //////////////////////////////////
-
-            // So if an array is...just a special kind of object...can we add properties to it? YES WE CAN!!! 
-            flow.columns = [
-                "huc01",
-                "huc02",
-                "huc03",
-                "huc04",
-                "huc05",
-                "huc06",
-                "huc07",
-                "huc08",
-                "huc09",
-                "huc10",
-                "huc11",
-                "huc12",
-                "huc13",
-                "huc14",
-                "huc15",
-                "huc16",
-                "huc17",
-                "huc18",
-                "huc19",
-                "huc20",
-                "huc21"
-            ];
-           
-            /////////////////////////////////
-            // 2. Draw Chart []
-            //////////////////////////////////
-            // Unfortunately I don't have enter-update-exit down pat, so I'm just gonna draw this once.
-
-            // List of groups = header of the csv files
-            var keys = flow.columns
-           
-            // Add X axis
-            var x = d3.scaleTime()
-                .domain([dates[0].start, dates[0].end]) // set the beginning and end by accessing the values stored in the global 'dates' variable. It needs the javascript object format, not the YYYY-MM-DD format we made elsewhere
-                .range([0,width ]);
-            
-            // append a "group" to the svg to contain the ticks, and then draw them
-            svg.append("g")
-                .attr("class","tick-label")
-                .attr("transform", "translate(0," + height*0.8 + ")")
-                .call(d3.axisBottom(x)
-                    .tickSize(-height*.01)
-                    .tickFormat(d3.timeFormat("%B %d, %Y"))
-                    .tickValues([dates[0].birthday])) // this is wrong, we need a date
-                .select(".domain").remove()
-
-            // Add Y axis
-            var y = d3.scaleLinear()
-                .domain([-300000, 300000]) // we could definitely calculate this dynamically with d3.max, but I'm being lazy
-                .range([height,0]);
-            
-            // Declare a color palette
-            var color = d3.scaleOrdinal()
-                .domain(keys)
-                .range(colorScheme);
-           
-            // Now D3 is doing something weird called Stacking that we need for streamgraphs. Don't ask me about it.
-            var stackedData = d3.stack()
-                .offset(d3.stackOffsetSilhouette)
-                .keys(keys)
-                (flow[0])
-          
-            // Reusable area generator - we are getting closer to drawing a thing! Don't know much about this part tho.
-            var area = d3.area()
-                .x(function(d) { 
-                    //console.log("What even is d?", d)
-                    return x(d.data.dateFull); 
-                })
-                .y0(function(d) { return y(d[0]); })
-                .y1(function(d) { return y(d[1]); })
-                .curve(d3.curveMonotoneX)
-
-
-            /////////////////////////////////
-            // 3. Make some variables that are actually just functions which can be called when we draw the svg
-            //////////////////////////////////
-
-            // create a lookup function
-            function getHUCname(hucIDnum){
-                var filtered = HUCInfo.filter(function(huc) { // take the HUCInfo array of objects, and filter items. We're using the argument 'huc' to represent the fact that each item in the array is a whole huc.  We'll store the one item we get in the variable 'filtered'
-                    return huc.no === hucIDnum; // return only the ONE object in the array where the number (.no) matches the provided hucIDnum exactly
-                })
-                if(filtered.length == 1) { // checking to make sure that there's ONE thing in the variable 'filtered' variable
-                    return filtered[0].name; // return the value in the ".name" property
-                }
-            }
-
-            // create a tooltip
-            var Tooltip = svg
-                .append("text")
-                .attr("x", 30)
-                .attr("y", height*0.8 + 11)
-                .attr("class", "tooltip")
-                .style("opacity", 0)
-                .style("z-index",100)
-
-            // Three function that change the tooltip when user hover / move / leave a cell
-            var mouseover = function(d) {
-                Tooltip.style("opacity", 1)
-                d3.selectAll(".flow").style("opacity", .2)
-                d3.select(this)
-                    .style("opacity", 1)
-            }
-            var mousemove = function(d,i) {
-                grp = keys[i]
-                Tooltip.text(getHUCname(grp.slice(3,5)))
-            }
-            var mouseleave = function(d) {
-                Tooltip.style("opacity", 0)
-                d3.selectAll(".flow").style("opacity", 1).style("stroke", "none")
-            }
-            
-
-
-            /////////////////////////////////
-            // 4. Drumroll....let's draw the svg!
-            //////////////////////////////////
-                
-            // Draw the areas
-            svg
-                .selectAll("path")
-                .data(stackedData)
-                .enter()
-                .append("path")
-                    .attr("class", "flow")
-                    .style("fill", function(d) { return color(d.key); })
-                    .attr("d", area)
-                    .on("mouseover", mouseover)
-                    .on("mousemove", mousemove)
-                    .on("mouseleave", mouseleave);
-        
-            d3.selectAll("path")
-                .transition()
-                .duration(1000)
-                .attr("d",area)
-            d3.selectAll(".tick-label")
-                .transition()
-                .duration(1)
-                .call(d3.axisBottom(x)
-                    .tickSize(-height*.01)
-                    .tickFormat(d3.timeFormat("%B %d, %Y"))
-                    .tickValues([dates[0].birthday]))
-                    .select(".domain").remove()
-
-
-
-
-
         // end the d3.json function
         });
 
@@ -566,3 +392,205 @@ function fetchData() { // no arguments because as part of the function, we'll se
 
 // End fetchData() function
 }
+
+
+
+function drawStreamgraph() { // again, no arguments because we've pushed the data to a globally scoped variable, "flow"
+
+    d3.select("#streamgraph").style("display","block"); // first make the block for the streamgraph appear in the DOM
+    console.log("inside!")
+    /////////////////////////////////
+    // Here's the general structure of what we're about to do
+    //
+    // 1. Add a property called 'columns' upon which the streamgraph data will be stacked
+    //
+    //////////////////////////////////
+
+    
+    /////////////////////////////////
+    // 1. Add a property called 'columns' upon which the streamgraph data will be stacked
+    //////////////////////////////////
+
+    // So if an array is...just a special kind of object...can we add properties to it? YES WE CAN!!! 
+    flow.columns = [
+        "huc01",
+        "huc02",
+        "huc03",
+        "huc04",
+        "huc05",
+        "huc06",
+        "huc07",
+        "huc08",
+        "huc09",
+        "huc10",
+        "huc11",
+        "huc12",
+        "huc13",
+        "huc14",
+        "huc15",
+        "huc16",
+        "huc17",
+        "huc18",
+        "huc19",
+        "huc20",
+        "huc21"
+    ];
+    // I would never have figured out that I needed this on my own, but I noticed in the streamgraph d3 example that the data has a property called columns upon which the data is later stacked.
+    // So this step ^ is just reverse engineering.
+
+    /////////////////////////////////
+    // 2. Draw Chart []
+    //////////////////////////////////
+    // Unfortunately I don't have enter-update-exit down pat, so I'm just gonna draw this once.
+
+    // List of groups = header of the csv files
+    var keys = flow.columns
+    
+    // Add X axis
+    var x = d3.scaleTime()
+        .domain([dates[0].start, dates[0].end]) // set the beginning and end by accessing the values stored in the global 'dates' variable. It needs the javascript object format, not the YYYY-MM-DD format we made elsewhere
+        .range([0,width ]);
+    
+    // append a "group" to the svg to contain the ticks, and then draw them
+    svg.append("g")
+        .attr("class","tick-label")
+        .attr("transform", "translate(0," + height*0.8 + ")")
+        .call(d3.axisBottom(x)
+            .tickSize(-height*.01)
+            .tickFormat(d3.timeFormat("%B %d, %Y"))
+            .tickValues([dates[0].birthday])) // this needs to dynamically update
+        .select(".domain").remove()
+
+    // Add Y axis
+    var y = d3.scaleLinear()
+        .domain([-300000, 300000]) // we could definitely calculate this dynamically with d3.max, but I'm being lazy
+        .range([height,0]);
+   
+    // Declare a color palette
+    var color = d3.scaleOrdinal()
+        .domain(keys)
+        .range(colorScheme);
+   
+    // Now D3 is doing something weird called Stacking that we need for streamgraphs. Don't ask me about it.
+    var stackedData = d3.stack()
+        .offset(d3.stackOffsetSilhouette)
+        .keys(keys)
+        (flow[0])
+   
+    // Reusable area generator - we are getting closer to drawing a thing! Don't know much about this part tho.
+    var area = d3.area()
+        .x(function(d) { 
+            // console.log("What even is d?", d)
+            return x(d.data.dateFull); 
+        })
+        .y0(function(d) { return y(d[0]); })
+        .y1(function(d) { return y(d[1]); })
+        .curve(d3.curveMonotoneX)
+
+
+    /////////////////////////////////
+    // 3. Make some variables that are actually just functions which can be called when we draw the svg
+    //////////////////////////////////
+
+    // create a lookup function
+    function getHUCname(hucIDnum){
+        var filtered = HUCInfo.filter(function(huc) { // take the HUCInfo array of objects, and filter items. We're using the argument 'huc' to represent the fact that each item in the array is a whole huc.  We'll store the one item we get in the variable 'filtered'
+            return huc.no === hucIDnum; // return only the ONE object in the array where the number (.no) matches the provided hucIDnum exactly
+        })
+        if(filtered.length == 1) { // checking to make sure that there's ONE thing in the variable 'filtered' variable
+            return filtered[0].name; // return the value in the ".name" property
+        }
+    }
+
+    // create a tooltip
+    var Tooltip = svg
+        .append("text")
+        .attr("x", 30)
+        .attr("y", height*0.8 + 11)
+        .attr("class", "tooltip")
+        .style("opacity", 0)
+        .style("z-index",100)
+
+    // Three function that change the tooltip when user hover / move / leave a cell
+    var mouseover = function(d) {
+        Tooltip.style("opacity", 1)
+        d3.selectAll(".flow").style("opacity", .2)
+        d3.select(this)
+            .style("opacity", 1)
+    }
+    var mousemove = function(d,i) {
+        grp = keys[i]
+        Tooltip.text(getHUCname(grp.slice(3,5)))
+    }
+    var mouseleave = function(d) {
+        Tooltip.style("opacity", 0)
+        d3.selectAll(".flow").style("opacity", 1).style("stroke", "none")
+    }
+    
+
+
+    /////////////////////////////////
+    // 4. Drumroll....let's draw the svg!
+    //////////////////////////////////
+        
+    // Draw the areas
+    svg
+        .selectAll(".flow")
+        .data(stackedData)
+        .enter()
+        .append("path")
+            .attr("class", "flow")
+            .style("fill", function(d) { return color(d.key); })
+            .attr("d", area)
+            .on("mouseover", mouseover)
+            .on("mousemove", mousemove)
+            .on("mouseleave", mouseleave);
+   
+    d3.selectAll(".flow")
+        .transition()
+        .duration(frequency)
+        .ease(d3.easeLinear)
+        .attr("d",area)
+    d3.selectAll(".tick-label")
+        .transition()
+        .duration(frequency)
+        .call(d3.axisBottom(x)
+            .tickSize(-height*.01)
+            .tickFormat(d3.timeFormat("%B %d, %Y"))
+            .tickValues([dates[0].birthday]))
+            .select(".domain").remove()
+}
+
+function update() {
+
+    /////////////////////////////////
+    // Calculate new data
+    /////////////////////////////////
+
+    console.log("flow", flow, "dates", dates)
+
+    // calculate the new date data
+    var newStart = addDays(dates[0].start, 1);
+    dates[0].start = newStart;
+    
+    var newEnd = addDays(dates[0].end, 1);
+    dates[0].end = newEnd;
+    console.log(gageSiteNos,"gage sites")
+    
+
+    // calculate new flow data to push
+    
+
+    // Shift last data point (was .unshift in reversed example)
+    // flow.shift();
+
+    // Push new value to the end (was .pop in the reversed example)
+    // flow.push("new date")
+
+    
+
+    // Finally, once the new data is updated, redraw the streamgraph
+    drawStreamgraph();
+};
+
+setInterval(update, frequency);
