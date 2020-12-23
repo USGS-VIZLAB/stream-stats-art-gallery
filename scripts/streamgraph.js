@@ -278,7 +278,7 @@ function fetchData() { // no arguments because as part of the function, we'll se
             // Notice the extremely nested nature of this dataset. Objects and Arrays all the way down. 
             // I'll push this data to a globally accesible variable so we can play with the raw data elsewhere on the page.
             rawAPIdata.push(apiData);
-            console.log(apiData,"api")
+            // console.log(apiData,"api")
 
             // let's just grab the timeseries out of the data, rather than all the extra metadata
             //timeseries = apiData; // EXERCISE : let's go get just the timeseries. Use the console to explore the data structure and fill out this line. Answer is below. 
@@ -572,7 +572,7 @@ function updateData() {
     // calculate new date range for the next api call
     var lastDate = flow[0][flow[0].length-1].dateFull; //this is the last date in the flow array
 
-    console.log(lastDate, "is the last date in the flow array")
+    // console.log(lastDate, "is the last date in the flow array")
     var newStart = addDays(lastDate,1);
     var newEnd = addDays(lastDate,31);
 
@@ -743,7 +743,7 @@ function updateData() {
         getTotalFlow(huc20,"huc20", newDates, newFlow);
         getTotalFlow(huc21,"huc21", newDates, newFlow);
 
-        console.log(newFlow, "calculated the next flow!!")
+        // console.log(newFlow, "calculated the next flow!!")
 
 
     // end update d3.json
@@ -752,11 +752,11 @@ function updateData() {
         
     // Push new value to the end (was .pop in the reversed example)
     flow.push(newFlow);
-    console.log("pushed new flow", flow);
+    // console.log("pushed new flow", flow);
 
     // Shift last data point (was .unshift in reversed example)
     flow.splice(0,1);
-    console.log("spliced old flow", flow);
+    // console.log("spliced old flow", flow);
 
     // Set new dates
     dates.pop()
@@ -772,7 +772,7 @@ function updateDraw() {
     // Calculate new data
     /////////////////////////////////
 
-    console.log("currently drawing with dates", dates[0], flow[0])
+    // console.log("currently drawing with dates", dates[0], flow[0])
 
     // calculate the new dates, which sets the "view pane" of the available data drawn on the chart
     var newStart = addDays(dates[0].start, 1);
@@ -786,4 +786,3 @@ function updateDraw() {
 };
 
 setInterval(updateDraw, frequency);
-
