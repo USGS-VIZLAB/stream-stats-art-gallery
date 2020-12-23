@@ -570,7 +570,9 @@ function drawStreamgraph() { // again, no arguments because we've pushed the dat
 function updateData() {
       
     // calculate new date range for the next api call
-    var lastDate = flow[0][30].dateFull; //this is the last date in the flow array
+    var lastDate = flow[0][flow[0].length-1].dateFull; //this is the last date in the flow array
+
+    console.log(lastDate, "is the last date in the flow array")
     var newStart = addDays(lastDate,1);
     var newEnd = addDays(lastDate,31);
 
@@ -741,24 +743,27 @@ function updateData() {
         getTotalFlow(huc20,"huc20", newDates, newFlow);
         getTotalFlow(huc21,"huc21", newDates, newFlow);
 
-        console.log(newFlow, "new flow!!")
+        console.log(newFlow, "calculated the next flow!!")
+
+
     // end update d3.json
     });
            
         
+    // Push new value to the end (was .pop in the reversed example)
+    flow.push(newFlow);
+    console.log("pushed new flow", flow);
 
     // Shift last data point (was .unshift in reversed example)
-    // flow.shift();
-
-    // Push new value to the end (was .pop in the reversed example)
-    // flow.push("new date")
-
+    flow.splice(0,1);
+    console.log("spliced old flow", flow);
 
     // Set new dates
-
-
+    dates.pop()
+    dates.push({'start': newStart, 'birthday': addDays(newStart, -2),'end': newEnd});
 }
-setInterval(updateData, frequency*3); // Update the data less frequently than it's drawn. specifically, 31 times as long (for 1 second per day)
+
+setInterval(updateData, frequency*31); // Update the data less frequently than it's drawn. specifically, 31 times as long (for 1 second per day)
 
 
 function updateDraw() {
@@ -767,7 +772,7 @@ function updateDraw() {
     // Calculate new data
     /////////////////////////////////
 
-    console.log("flow", flow[0], "dates", dates[0])
+    console.log("currently drawing with dates", dates[0], flow[0])
 
     // calculate the new dates, which sets the "view pane" of the available data drawn on the chart
     var newStart = addDays(dates[0].start, 1);
