@@ -3,7 +3,8 @@
         <meta charset="UTF-8">
         <link rel="stylesheet" href="style/style.css"/>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <script src="https://d3js.org/d3.v4.min.js"></script>
+        <script src="lib/d3.js"></script>
+        <!-- <script src="https://d3js.org/d3.v4.min.js"></script> -->
     </head>
     <body>
       <header>
@@ -51,8 +52,7 @@
           <div class="form-flex">
             <input class="form-field" type="date" id="birthdate" placeholder="1987-04-23" value="1987-04-23">
           </div>
-          <button id="button-date" onclick="fetchData()">Get Data</button>
-          <p class="hidden-until-data">Check the console to see all the data fun that is happening in the browser. Once it's done, you can draw the streamgraph with the data.</p>
+          <button id="button-date" onclick="fetchData()">Go to Date</button>
           <!-- <button class="hidden-until-data" onclick="drawStreamgraph()">Draw Streamgraph</button> -->
         </div>
         <div id="async-test"></div>
@@ -62,8 +62,8 @@
         
 
         <!-- run scripts -->
-        <script type='text/javascript' src='scripts/gageConstellations.js'></script>
-        <script type='text/javascript' src='scripts/streamgraph.js'></script>
+        <!-- <script type='text/javascript' src='scripts/gageConstellations.js'></script> -->
+        <script type='text/javascript' src='scripts/streamgraph2.js'></script>
 
         
     </body>

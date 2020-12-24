@@ -1,19 +1,13 @@
-
 /////////////////////////////////
 // Declare any variables that need to be Global, ie, accessible outside of any particular functions.
 //////////////////////////////////
 
 var emptyAPI = "https://waterservices.usgs.gov/nwis/dv/?format=json";
-var state = '';
-var sites = []; 
-var birthday = '1992-06-07'; //startDT=
 var start = '';
 var startDate = '';
 var end = '';
 var endDate = '';
 var paramCode = '00060'; // discharge in cubic feet per second
-var siteType = 'ST';
-var siteStatus = "all";
 var colorScheme = ["#4f0b56","#482a70","#41498a","#3287bd","#4da4b1","#67c2a5","#8acda4","#acd7a3","#c8e19e","#e4ea99","#f7eda9","#fcde89","#ffc28a","#e5ccf5", /*"#eeb4d1",*/"#f79cac","#ae3a7d","#890965","#760a60","#620a5b","#420f4e"];
 var gageSiteNos = [];
 
