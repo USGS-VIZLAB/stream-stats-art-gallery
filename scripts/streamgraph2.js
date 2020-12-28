@@ -64,29 +64,7 @@ function getYYYYMMDD(d0){
     return new Date(d.getTime() - d.getTimezoneOffset() * 60 * 1000).toISOString().split('T')[0]
 }
 
-/////////////////////////////////
-// Get Date Array
-//////////////////////////////////
-var birthday = new Date(document.getElementById("birthdate").value);
-var allDates = [];
-function getDates(birthdayObj, length) {
-    var startingDate = addDays(birthdayObj,-15);
-    for (i=0; i<dataMax; i++) {
-        var this_date = addDays(birthdayObj,(-15+i));
-        allDates.push(this_date);
-    };
-}
-getDates(birthday, dataMax);
 
-/////////////////////////////////
-// Compile API call
-//////////////////////////////////
-var paramCode = '00060'; // discharge in cubic feet per second
-var emptyAPI = "https://waterservices.usgs.gov/nwis/dv/?format=json";
-var urlStartDate = "&startDT=" + getYYYYMMDD(allDates[0]); // this attaches the start date in YYYY-MM-DD
-var urlEndDate = "&endDT=" + getYYYYMMDD(allDates[allDates.length-1]); // this attaches the end date in YYYY-MM-DD
-var urlStatCD = "&statCd=00003" // 00003 means "mean" values
-var urlParam = "&PARAMETERcD=" + paramCode; // we declared above to only want discharge
 
 
 /////////////////////////////////
@@ -94,53 +72,107 @@ var urlParam = "&PARAMETERcD=" + paramCode; // we declared above to only want di
 //////////////////////////////////
 
 
-var promises = [    
-    d3.csv("data/ref_gages.csv")
+var promises = [ 
+    d3.csv("data/ref_gages.csv"),
+    new Date(document.getElementById("birthdate").value)
 ]
 
-Promise.all(promises).then(function(data) {
-    var gages = data[0];
-    
-
+Promise.all(promises).then(function(data) {  // start only with the list of gages and a birthday
+    var gages = data[0];  
     var gageSites = gages.map(function(g) { return g.site_no; });
+    var birthday = data[1];
+
+    /////////////////////////////////
+    // Get Date Array from birthday
+    //////////////////////////////////
+    var allDates = [];
+    function getDates(birthdayObj, length) {
+        var startingDate = addDays(birthdayObj,-15);
+        for (i=0; i<dataMax; i++) {
+            var this_date = addDays(birthdayObj,(-15+i));
+            allDates.push(this_date);
+        };
+    }
+    getDates(birthday, dataMax);
+    return [gageSites,allDates];
+
+}).then(function(data){  // Compile the API Call
+
+
+
+    var gageSites = data[0] // list of gage sites
+    var allDates = data[1]; // date array
    
-    return gageSites;
-}).then(function(gageSites){  // Compile the API Call
-    // Compile the array of gage sites into the url for the API
+    /////////////////////////////////
+    // Compile API call
+    //////////////////////////////////
+    var paramCode = '00060'; // discharge in cubic feet per second
+    var emptyAPI = "https://waterservices.usgs.gov/nwis/dv/?format=json";
+    var urlStartDate = "&startDT=" + getYYYYMMDD(allDates[0]); // this attaches the start date in YYYY-MM-DD
+    var urlEndDate = "&endDT=" + getYYYYMMDD(allDates[allDates.length-1]); // this attaches the end date in YYYY-MM-DD
+    var urlStatCD = "&statCd=00003" // 00003 means "mean" values
+    var urlParam = "&PARAMETERcD=" + paramCode; // we declared above to only want discharge
     var urlSites = "&sites=" + gageSites; // this attaches the array of site numbers
-    // Compile the URL
+
+    
+    /////////////////////////////////
+    // Call the API 
+    //////////////////////////////////
     sitey = emptyAPI + urlSites + urlStartDate + urlEndDate + urlStatCD + urlParam;
     console.log(sitey, "sitey")
-    var rawData = [];
-    d3.json(sitey, function(error, apiData){ 
-        console.log(apiData, "api call")
-        rawData.push(apiData);
-    });
+    var timeseries = [];
+    d3.json(sitey).then(function(apiData) { // in D3 v5, d3.json becomes a promise
+        timeseries.push(apiData.value.timeSeries);
+        console.log(timeseries, "timeseries 1")
 
-    return rawData; // THIS IS WHAT GETS PASSED INTO THE UPDATE
-    
-}).then(function(updates) {  // THIS IS THE UPDATED DRAW
+        // data wrangling, pass a full dataset in here
 
-    // Update Chart
-    console.log(updates,"this is what got passed to the second promise")
-})
+    }); 
+}).catch(function(err){console.log("error", err)});
+// .catch(console.log.bind(console)); // what the hell does this do
+// .then(function(timeseries) {  // THIS IS THE UPDATED DRAW
 
-// d3.csv("data/ref_gages.csv", function(gages) { 
-        
-//     // Get list of site numbers to add to the url.  We can use the .map() function!
-//     var gageSiteNos = gages.map(function(g) { return g.site_no; });
-//     gageSites.push(gageSiteNos);
-    
-// });
+//     // Update Chart
+//     console.log(timeseries,"this is what got passed to the second promise")
+// })
 
+var apithing="https://waterservices.usgs.gov/nwis/dv/?format=json&sites=01013500,09352900,09378170,09378630,09386900,09404450,09430500,09430600,09447800,16518000,16587000,16717000,16720000,50025155,50034000,50050900&startDT=1987-04-07&endDT=1987-05-07&statCd=00003&PARAMETERcD=00060";
 
+var isMomHappy = true;
 
-/////////////////////////////////
-// Create as single function for calling the API and drawing the updated chart
-//////////////////////////////////
+// declare promise
+var willIGetNewPhone = new Promise(
+    function(resolve, reject) {
+        if (isMomHappy) {
+            var phone = {brand: "Samsung", color: "black"};
+            resolve(phone); // what happens if the promise is fulfilled
+        } else {
+            var reason = new Error("mom is not happy");
+            reject(reason); // we get a reason for why the promise is rejected
+        }
+    }
+);
 
-function fetchData() {
-    // console.log(gageSites, "sites");
-
-
+// second promise
+var showOff = function(phone) {
+    var message = "Yo I have a "+phone.color+" "+phone.brand+" phone";
+    return Promise.resolve(message);
 }
+
+// call our promise
+var askMom = function() {
+    willIGetNewPhone // this is the first promise that decides whether or not you get a new phone
+    .then(showOff) // this is the second promise, and passes a message on as the "resolved/fulfilled" value
+    .then(function(fulfilled){
+        // yay you got a new phone
+        console.log(fulfilled);
+        // output is the object that is the phone
+      
+    })    
+    .catch(function(error){
+        // mom didn't buy a phone
+        console.log(error.message);
+    });
+}
+
+askMom();
