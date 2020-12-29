@@ -55,7 +55,27 @@
           <button id="button-date" onclick="fetchData()">Go to Date</button>
           <!-- <button class="hidden-until-data" onclick="drawStreamgraph()">Draw Streamgraph</button> -->
         </div>
-        <div id="async-test"></div>
+        <div class="input-group text-content">
+          <p class="prompt">Let's get a little more specific. Where were you born?</p>
+          <div class="form-flex">
+            <input class="form-field" type="text" id="city" placeholder="City" value="Lancaster">
+            <input class="form-field" type="text" id="state" placeholder="State" value="PA">
+          </div>
+          <button id="button-location">Discover</button>
+          <!-- <div class="lds-ripple"><div></div><div></div></div> -->
+        </div>
+        
+        
+
+        <!-- <div id="buttons-for-constructor">
+          <div class="chart-container" style="max-width: 1000px;"></div>
+          <button class="color" data-color="red">red line</button>
+          <button class="color" data-color="green">green line</button>
+          <button class="color" data-color="blue">blue line</button>
+          <button class="data">change data</button>
+        </div> -->
+        
+        <div id="blobs"></div>
         <div id="streamgraph"></div>
         <div id="constellation"></div>
    
@@ -64,6 +84,8 @@
         <!-- run scripts -->
         <!-- <script type='text/javascript' src='scripts/gageConstellations.js'></script> -->
         <!-- <script type='text/javascript' src='scripts/streamgraph2.js'></script> -->
+        <script type='text/javascript' src='scripts/config.js'></script>
         <script type='text/javascript' src='scripts/gageBlobs.js'></script>
+        <!-- <script type='text/javascript' src='scripts/constructor.js'></script> -->
     </body>
 </html>

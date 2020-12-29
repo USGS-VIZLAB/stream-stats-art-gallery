@@ -264,7 +264,7 @@ function fetchData() { // no arguments because as part of the function, we'll se
 
         // Compile the URL
         sitey = emptyAPI + urlSites + urlStartDate + urlEndDate + urlStatCD + urlParam;
-        
+        console.log(sitey, "sitey")
         /////////////////////////////////
         // 6. Call the API and get the actual discharge data!
         //////////////////////////////////

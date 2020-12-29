@@ -51,7 +51,7 @@ function distance(lat1, lon1, lat2, lon2, unit) {
         brng = toDegrees(brng);
 
 
-        return {"distance": dist, "bearing": (brng+360) % 360 };
+        return {"units": miles, "distance": dist, "bearing": (brng+360) % 360 };
     }
 }
 
