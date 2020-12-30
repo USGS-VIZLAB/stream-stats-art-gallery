@@ -3,7 +3,9 @@
         <meta charset="UTF-8">
         <link rel="stylesheet" href="style/style.css"/>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <script src="lib/d3.js"></script>
+        <!-- <script src="lib/d3.js"></script> -->
+        <script src="https://d3js.org/d3.v5.min.js" charset="utf-8"></script>
+        <script src="https://d3js.org/d3-path.v1.min.js" charset="utf-8"></script>
         <!-- <script src="https://d3js.org/d3.v4.min.js"></script> -->
     </head>
     <body>
@@ -48,12 +50,6 @@
       
         <div id="input-date" class="text-content">
           <p>We're using a subset of USGS streamgaging sites in the <a href="https://pubs.usgs.gov/fs/2012/3047/pdf/fs2012-3047.pdf#:~:text=The%20U.S.%20Geological%20Survey%E2%80%99s%20%28USGS%29%20Hydro-Climatic%20Data%20Network,primarily%20reflects%20prevailing%20meteorological%20conditions%20for%20specified%20years.">Hydro Climatic Data Network 2009</a> for our list of gage sites to call.</p>
-          <p class="prompt">When were you born?</p>
-          <div class="form-flex">
-            <input class="form-field" type="date" id="birthdate" placeholder="1987-04-23" value="1987-04-23">
-          </div>
-          <button id="button-date" onclick="fetchData()">Go to Date</button>
-          <!-- <button class="hidden-until-data" onclick="drawStreamgraph()">Draw Streamgraph</button> -->
         </div>
         <div class="input-group text-content">
           <p class="prompt">Let's get a little more specific. Where were you born?</p>
@@ -61,11 +57,15 @@
             <input class="form-field" type="text" id="city" placeholder="City" value="Lancaster">
             <input class="form-field" type="text" id="state" placeholder="State" value="PA">
           </div>
+          <p class="prompt">When were you born?</p>
+          <div class="form-flex">
+            <input class="form-field" type="date" id="birthdate" placeholder="1987-04-23" value="1987-04-23">
+          </div>
           <button id="button-location">Discover</button>
           <!-- <div class="lds-ripple"><div></div><div></div></div> -->
         </div>
         
-        
+
 
         <!-- <div id="buttons-for-constructor">
           <div class="chart-container" style="max-width: 1000px;"></div>
@@ -75,7 +75,8 @@
           <button class="data">change data</button>
         </div> -->
         
-        <div id="blobs"></div>
+        <div id="blobs1"></div>
+        <div id="blobs2"></div>
         <div id="streamgraph"></div>
         <div id="constellation"></div>
    
@@ -85,6 +86,7 @@
         <!-- <script type='text/javascript' src='scripts/gageConstellations.js'></script> -->
         <!-- <script type='text/javascript' src='scripts/streamgraph2.js'></script> -->
         <script type='text/javascript' src='scripts/config.js'></script>
+        <script type='text/javascript' src='scripts/radarChart.js'></script>
         <script type='text/javascript' src='scripts/gageBlobs.js'></script>
         <!-- <script type='text/javascript' src='scripts/constructor.js'></script> -->
     </body>

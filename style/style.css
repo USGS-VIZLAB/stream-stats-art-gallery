@@ -547,6 +547,11 @@ button:hover{
   .italic {
     font-style: italic;
   }
+
+
+/* Blob SVG */
+
+
   /* Loading Ripple */
 
   #loading-warning {
@@ -625,4 +630,6 @@ button:hover{
       box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
     }
   }
+
+
 
