@@ -1,5 +1,9 @@
 pipeline {
-    agent none 
+    agent {
+        node {
+            label 'team:makerspace-small'
+        }
+    } 
     stages {
         stage('Checkout repo') {
             agent any 
