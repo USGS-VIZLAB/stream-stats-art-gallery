@@ -6,7 +6,6 @@ pipeline {
     } 
     stages {
         stage('Checkout repo') {
-            agent any 
             steps {
                 sh 'wget -O DOIRootCA2.cer http://sslhelp.doi.net/docs/DOIRootCA2.cer'
                 git "https://github.com/USGS-VIZLAB/stream-stats-art-gallery"
