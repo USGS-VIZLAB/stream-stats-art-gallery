@@ -19,7 +19,7 @@
             <div class="byline-container">
               <p id="by1" class="byline">A personalized art gallery by the U.S. Geological Survey</p>
               <p id="by2" class="byline">using 130 years of daily streamgaging data.</p>
-              <p id="by3" class="byline">Last updated Jan 4, 2021</p>
+              <p id="by3" class="byline">First, put in a date.</p>
               <svg id="arrow-down" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 308.4 247.1">
                 <g id="arrow-down-group">
                   <polygon class="arrow-down" points="154.2 61 0 0 0 62 154.2 123 308.4 62 308.4 0 154.2 61"/>
@@ -31,17 +31,18 @@
              
       <section id="streamgraph-section">
         <div class="input-group text-content">
-          <p  id="prompt" class="prompt">Let's visualize what flow looked like across the country.  When is your birthday?</p>
           <div class="form-flex">
             <input class="form-field" type="date" id="birthdate" placeholder="1987-04-23" value="1987-04-23">
           </div>
+          <p  id="prompt" class="prompt"></p>
           <button id="go-button" onclick="fetchData()">Discover</button>
         </div>
         <div id="streamgraph"></div>
         <div id="statement" class="text-content">
           <h3>About the STREAM</h3>
           <p>This is a streamgraph, where one month of time spans from the left of the screen to the right. Each color band is one <a href="https://nas.er.usgs.gov/hucs.aspx#:~:text=A%20hierarchical%20hydrologic%20unit%20code%20%28HUC%29%20consisting%20of,the%20National%20Watershed%20Boundary%20Dataset%2C%204th%20ed.%202013%29." target="_blank">Hydrologic Unit,</a> or a region of the country which is hydrologically related from the <a href="https://www.usgs.gov/core-science-systems/ngp/national-hydrography/national-hydrography-dataset?qt-science_support_page_related_con=0#qt-science_support_page_related_con" target="_blank">National Hydrography Dataset.</a> left We're using a subset of USGS streamgaging sites in the <a href="https://pubs.usgs.gov/fs/2012/3047/pdf/fs2012-3047.pdf#:~:text=The%20U.S.%20Geological%20Survey%E2%80%99s%20%28USGS%29%20Hydro-Climatic%20Data%20Network,primarily%20reflects%20prevailing%20meteorological%20conditions%20for%20specified%20years.">Hydro Climatic Data Network 2009</a> for our list of gage sites to call. Each band's width is encoded by the total flow measured by all gages in the HCDN for each of the 31 days displayed on screen.</p>
-          <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Lacus viverra vitae congue eu consequat ac felis. Nunc consequat interdum varius sit amet mattis. Vitae ultricies leo integer malesuada. Justo eget magna fermentum iaculis eu non diam phasellus vestibulum. Consectetur adipiscing elit ut aliquam purus sit amet. Commodo quis imperdiet massa tincidunt nunc. Pellentesque massa placerat duis ultricies lacus sed. Egestas integer eget aliquet nibh. Fusce ut placerat orci nulla pellentesque. Consequat semper viverra nam libero justo laoreet sit amet. Eu feugiat pretium nibh ipsum consequat nisl vel pretium. Proin sagittis nisl rhoncus mattis rhoncus urna neque viverra.</p>
+          
+          <h3>Scientific Resources</h3>
           <p>Read some more about the <a href="https://labs.waterdata.usgs.gov/visualizations/gages-through-the-ages/index.html#/" target="_blank">history of streamgaging,</a> or explore the <a href="https://waterservices.usgs.gov/" target="_blank">National Water Information System API</a> for yourself.</p>
         </div>
       </section>
@@ -857,11 +858,16 @@
           </svg>
         </div>
         <div id="bottom" class="text-content">
-          <p>The end!</p>
+          <p></p>
         </div>
       </section>
         
-        
+      <footer>
+        <div class="flex-container">
+          <div class="flex-item footer">Developed by the <a href="https://www.usgs.gov/mission-areas/water-resources/science/water-data-visualizations?qt-science_center_objects=0#qt-science_center_objects" target="_blank">USGS Vizlab</a></div>
+          <div class="flex-item footer">Find us on <a href="https://github.com/USGS-VIZLAB" target="_blank">Github</a></div>
+        </div>
+      </footer>
 
         
         <!-- run scripts -->
