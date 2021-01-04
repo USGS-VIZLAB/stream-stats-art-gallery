@@ -21,6 +21,7 @@ var dates = []; // an empty array of dates that we'll push info to
 
 // Prompts for the date input 
 var prompts = [
+    "Try your birthday",
     "What about a famous date?", 
     "What is your best friend's birthday?",
     "The summer of 1988 brought a country-wide drought.  Try a date some time in July.",
@@ -573,8 +574,11 @@ function fetchData() { // no arguments because as part of the function, we'll se
 
             // Finally, when it's all done
             d3.select("#prompt").html(prompts[promptIndex]);
-            d3.select("#go-button").html("See Another")
-            d3.select("#historical-gallery").style("display", "block")
+            d3.select("#go-button").html("See Another");
+            d3.select("#by3").style("display", "none");
+            d3.select("#statement").style("display", "block");
+            d3.select("#historical-gallery").style("display", "block");
+            
 
         // end the d3.json function
         });
